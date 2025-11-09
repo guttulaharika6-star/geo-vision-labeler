@@ -1,0 +1,20 @@
+name: geo_vision_labeler
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - numpy==2.2.4
+      - tqdm==4.67.1
+      - pillow==11.1.0
+      - rasterio==1.4.3
+      - torchvision==0.22.0
+      - transformers==4.50.0
+      - openai==1.65.2
+      - pytest==8.3.5
+      - torch==2.7.0
+      - dotenv==0.9.9
+      - pandas==2.2.3
+      - pyyaml==6.0.2

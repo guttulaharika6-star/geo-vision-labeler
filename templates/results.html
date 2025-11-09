@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>GVL Results</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 4vh auto; padding: 24px; }
+    table { border-collapse: collapse; width:100%; margin-bottom: 18px; }
+    th, td { border:1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f7f7f7; }
+    .ok { color:#0a0; font-weight:600; }
+    .warn { color:#a60; font-weight:600; }
+    .thumb { width: 120px; height: auto; border-radius: 6px; }
+    .row { display:flex; gap:12px; align-items:center; }
+    button { padding: 10px 14px; cursor: pointer; }
+    details summary { cursor: pointer; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('dashboard') }}">&larr; Back</a>
+  <h2>Results</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Thumbnail</th>
+        <th>Filename</th>
+        <th>Predicted Label</th>
+        <th>Confidence</th>
+        <th>Mode</th>
+        <th>Locality</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+        <tr>
+          <td>
+            {% if r.image_url %}
+              <img class="thumb" src="{{ r.image_url }}" alt="thumb">
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ r.filename }}</td>
+          <td>{{ r.predicted_label }}</td>
+          <td class="{{ 'ok' if r.confidence >= 0.6 else 'warn' }}">{{ '%.2f'|format(r.confidence) }}</td>
+          <td>{{ r.mode }}</td>
+          <td>{{ r.locality or '—' }}</td>
+          <td>{{ r.description or '—' }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="row">
+    <button id="btnCsv">Download CSV</button>
+    <small>Exports filename, label, confidence, locality, description, mode.</small>
+  </div>
+
+  <details>
+    <summary>Show Raw JSON (for QA)</summary>
+    <pre id="jsonBox"></pre>
+  </details>
+
+  <script>
+    // Embed the results data for CSV and JSON
+    const results = {{ results|tojson }};
+    // Render pretty JSON only when opened — keeps the page clean
+    const box = document.getElementById('jsonBox');
+    if (box) box.textContent = JSON.stringify(results, null, 2);
+
+    // CSV download
+    const btn = document.getElementById('btnCsv');
+    btn.onclick = async () => {
+      const res = await fetch('{{ url_for("export_csv") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(results)
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      // Try to infer filename from Content-Disposition header
+      const cd = res.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="?([^"]+)"?/i);
+      a.href = url;
+      a.download = m ? m[1] : 'labels.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+</body>
+</html>
